@@ -152,3 +152,43 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+while (1)
+  {
+	  //si se presiona el boton1
+	  if(bot1 == 1){
+		  //enviar valor para indicarle al esp32 que mande el dato del sensor
+		  uint8_t opcion1 = '1';
+		  HAL_UART_Transmit(&huart5, &opcion1, sizeof(opcion1), 100);
+		  HAL_UART_Transmit(&huart2, &opcion1, sizeof(opcion1), 100);
+
+		  memset(bufferUart, 0, sizeof(bufferUart));
+		  memset(buff, 0, sizeof(buff));
+		  //recibir dato del esp32
+		  if (HAL_UART_Receive(&huart5, &bufferUart[0] , 2, HAL_MAX_DELAY) == HAL_OK){
+			  valorSensor = (bufferUart[0] << 8) | bufferUart[1];
+			  //Si hay luz
+			  if(valorSensor > 100){
+				  //genera imagen de dia
+				  FillRect(0, 0, 319, 239, 0x155b);
+				  LCD_Bitmap(39, 0, 240, 240, day);
+				  sprintf(buff, "Valor Medido: %d lx\r\n", valorSensor);
+				  sprintf(buff1, "Valor Medido: %d lx", valorSensor);
+				  LCD_Print("Intensidad", 80, 85, 1, 0x0000, 0xaf3e);
+				  LCD_Print("Luminica", 164, 85, 1, 0x0000, 0xaf3e);
+				  LCD_Print(buff1, 80, 96, 1, 0x0000, 0xaf3e);
+				  HAL_UART_Transmit(&huart2, (uint8_t *)buff, strlen(buff), HAL_MAX_DELAY);
+			  }
+			  else {
+				  FillRect(0, 0, 319, 239, 0x0023);
+				  LCD_Bitmap(39, 0, 240, 240, night);
+				  sprintf(buff, "Valor Medido: %d lx\r\n", valorSensor);
+				  sprintf(buff1, "Valor Medido: %d lx", valorSensor);
+				  LCD_Print("Intensidad", 80, 85, 1, 0xffff, 0x2189);
+				  LCD_Print("Luminica", 164, 85, 1, 0xffff, 0x2189);
+				  LCD_Print(buff1, 80, 96, 1, 0xffff, 0x2189);
+				  HAL_UART_Transmit(&huart2, (uint8_t *)buff, strlen(buff), HAL_MAX_DELAY);
+			  }
+		  }
+		  bot1 = 0;
+
+	  }
