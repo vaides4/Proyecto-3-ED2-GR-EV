@@ -192,3 +192,63 @@ while (1)
 		  bot1 = 0;
 
 	  }
+//si se presiona el boton2
+	  if(bot2 == 1){
+		  //enviar valor para indicarle al esp32 que mande el dato del sensor
+		  uint8_t opcion2 = '2';
+		  HAL_UART_Transmit(&huart5, &opcion2, sizeof(opcion2), HAL_MAX_DELAY);
+
+		  memset(bufferUart, 0, sizeof(bufferUart));
+		  memset(buff, 0, sizeof(buff));
+		  if (HAL_UART_Receive(&huart5, &bufferUart[0] , 2, HAL_MAX_DELAY) == HAL_OK){
+			  valorSensor = (bufferUart[0] << 8) | bufferUart[1];
+			  //convierte bufferUart a una string con \n al final para poder mandarlo a la Sd
+			  sprintf(buff, "Valor Medido: %d lx\r\n", valorSensor);
+
+			  //montar el archivo
+			  fres = f_mount(&fs, "/", 0);
+			  if (fres == FR_OK) {
+				  transmit_uart("\n Micro SD card is mounted successfully!\n");
+			  }
+			  else if (fres != FR_OK) {
+				  transmit_uart("Micro SD card's mount error!\n");
+			  }
+			  //abrir el archivo
+			  fres = f_open(&fil, "Prueba.txt", FA_OPEN_APPEND | FA_WRITE | FA_READ);
+			  if (fres == FR_OK) {
+				  transmit_uart("File opened for reading.\n");
+			  }
+			  else if (fres != FR_OK) {
+				  transmit_uart("File was not opened for reading!\n");
+			  }
+			  //escribir en el archivo
+			  //for (uint8_t i = 0; i < 10; i++) {
+			  // f_puts("Hola Gaby.\n", &fil);
+			  //}
+			  f_puts(buff, &fil);
+			  //cerrar el archivo
+			  fres = f_close(&fil);
+			  if (fres == FR_OK) {
+				  transmit_uart("The file is closed.\n");
+			  }
+			  else if (fres != FR_OK) {
+				  transmit_uart("The file was not closed.\n");
+			  }
+			  //desmontar la SD
+			  f_mount(NULL, "", 1);
+			  if (fres == FR_OK) {
+				  transmit_uart("The Micro SD card is unmounted!\n");
+			  }
+			  else if (fres != FR_OK) {
+				  transmit_uart("The Micro SD was not unmounted!");
+			  }
+		  }
+		  bot2 = 0;
+	  }
+
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
