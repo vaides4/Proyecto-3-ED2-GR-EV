@@ -94,3 +94,30 @@ void loop() {
     }
   }
 }
+
+
+//funcion para recibir I2C
+void onRecieve(int len){
+  //while para que lea datos siempre que existan
+  while(Wire.available()){
+    //lecura de I2C
+    sensorI2C = Wire.read();
+
+  }
+}
+
+void pixelLoading(int colorPix){
+  for(int i = 0; i < numPixeles; i++){
+    pixels.setPixelColor(i, pixels.Color(colorPix, 0, 0));
+    pixels.show();
+  }
+  delay(250);
+}
+
+void pixelOn(int colorChoice){
+  for(int i = 0; i < numPixeles; i++){
+    pixels.setPixelColor(i, pixels.Color(colorChoice, 0, 0));
+    pixels.show();
+  }
+  delay(20);
+}
