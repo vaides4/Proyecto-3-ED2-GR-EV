@@ -58,3 +58,39 @@ void setup() {
   Wire.begin((u_int8_t)I2C_DEV_ADDR);
 
 }
+
+void loop() {
+  //Apaga colores del pixel
+  pixels.clear();
+
+  //Pixels modo encendido 
+  pixelOn(50);
+  
+  //lectura valor analogico
+  valorPot1 = analogRead(pot);
+  
+  //mapeo valor analogico
+  mapPot1 = map(valorPot1, 0, 4095, 0, 1000);
+
+  if(Serial2.available() > 0){
+    opcion = Serial2.read();
+    Serial.print("Recibido: ");
+    Serial.println(opcion);
+
+    dataToSend[0] = (mapPot1 >> 8) & 0xFF;
+    dataToSend[1] = mapPot1 & 0xFF; 
+
+    if(opcion == 49){
+      pixelLoading(150);
+      Serial2.write(dataToSend, 2);
+      Serial.println("Opcion1");
+      Serial.println(mapPot1);
+    }
+    if(opcion == 50){
+      pixelLoading(255);
+      Serial2.write(dataToSend, 2);
+      Serial.println("Opcion2");
+      Serial.println(mapPot1);
+    }
+  }
+}
