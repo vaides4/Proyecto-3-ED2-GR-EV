@@ -1,1 +1,60 @@
+#include <Arduino.h>
+#include <Adafruit_NeoPixel.h>
+#include <Wire.h>
 
+//pin de conexion del neopixel
+#define neoPixelPin 27
+
+//cantidad de neopixeles
+#define numPixeles 16
+
+//Pin potenciometro
+#define pot 36
+
+//definicion de variable a utilizar con libreria
+Adafruit_NeoPixel pixels(numPixeles, neoPixelPin, NEO_BGR + NEO_KHZ800);
+
+//direccion I2C
+#define I2C_DEV_ADDR 0x55
+
+//declaracion funciones de callbacks para I2C
+void onRequest();
+void onRecieve(int len);
+
+//funcion mantener pixels encendidos
+void pixelOn(int colorPix);
+//funcion encender pixels uno por uno
+void pixelLoading(int colorPix);
+
+//variable de opcion
+uint8_t opcion;
+
+//variable para leer potenciometro
+uint16_t valorPot1;
+
+//mapeo potenciometro
+uint16_t mapPot1;
+uint8_t dataToSend[2];
+
+//variable como bandera para enviar datos I2C
+bool enviar = false;
+
+//variable que recibe info I2C
+uint8_t sensorI2C;
+
+void setup() {
+  //Comenzar monitor serial
+  Serial.begin(115200);
+
+  //comenzar serial 2
+  Serial2.begin(115200);
+
+  //comenzar neopixel
+  pixels.begin();
+
+  //Setup I2C
+  Serial.setDebugOutput(true);
+  Wire.onReceive(onRecieve);
+  Wire.begin((u_int8_t)I2C_DEV_ADDR);
+
+}
