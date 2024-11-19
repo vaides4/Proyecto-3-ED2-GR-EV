@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include <BH1750.h>
 #include <Wire.h>
 
 //pin de conexion del neopixel
@@ -8,43 +9,33 @@
 //cantidad de neopixeles
 #define numPixeles 16
 
-//Pin potenciometro
-#define pot 36
-
 //definicion de variable a utilizar con libreria
 Adafruit_NeoPixel pixels(numPixeles, neoPixelPin, NEO_BGR + NEO_KHZ800);
 
-//direccion I2C
-#define I2C_DEV_ADDR 0x55
-
-//declaracion funciones de callbacks para I2C
-void onRequest();
-void onRecieve(int len);
+//direccion I2C del sensor
+BH1750 lightMeter(0x23);
 
 //funcion mantener pixels encendidos
 void pixelOn(int colorPix);
-//funcion encender pixels uno por uno
-void pixelLoading(int colorPix);
 
-//variable de opcion
+//funcion encender pixels uno por uno
+void pixelLoading(int colorRed, int colorGreen, int colorBlue);
+
+//variable de opcion a realizar
 uint8_t opcion;
 
-//variable para leer potenciometro
-uint16_t valorPot1;
-
-//mapeo potenciometro
-uint16_t mapPot1;
+//buffer utilizado para mandar valor de sensor de dos bytes
 uint8_t dataToSend[2];
 
-//variable como bandera para enviar datos I2C
-bool enviar = false;
-
-//variable que recibe info I2C
-uint8_t sensorI2C;
+//variable utilizada para guardar el valor del sensor
+int lux;
 
 void setup() {
   //Comenzar monitor serial
   Serial.begin(115200);
+
+  //Inicializar I2C bus
+  Wire.begin();
 
   //comenzar serial 2
   Serial2.begin(115200);
@@ -52,72 +43,72 @@ void setup() {
   //comenzar neopixel
   pixels.begin();
 
-  //Setup I2C
-  Serial.setDebugOutput(true);
-  Wire.onReceive(onRecieve);
-  Wire.begin((u_int8_t)I2C_DEV_ADDR);
-
-}
-
-void loop() {
   //Apaga colores del pixel
   pixels.clear();
 
   //Pixels modo encendido 
-  pixelOn(50);
-  
-  //lectura valor analogico
-  valorPot1 = analogRead(pot);
-  
-  //mapeo valor analogico
-  mapPot1 = map(valorPot1, 0, 4095, 0, 1000);
+  pixelOn(250);
 
+  //condicion if para detectar si hay problemas para inicializar el sensor I2C
+  if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
+    Serial.println(F("BH1750 Advanced begin"));
+  } 
+  else {
+    Serial.println(F("Error initialising BH1750"));
+  }
+
+}
+
+void loop() {
+  //codigo solo corre si se detecta algo en Uart enviado desde el nucleo
   if(Serial2.available() > 0){
+    //se lee la opcion escogida enviada desde nucleo en Uart
     opcion = Serial2.read();
-    Serial.print("Recibido: ");
-    Serial.println(opcion);
 
-    dataToSend[0] = (mapPot1 >> 8) & 0xFF;
-    dataToSend[1] = mapPot1 & 0xFF; 
+    //Si el sensor detecta un nuevo valor de medicion
+    if (lightMeter.measurementReady()) {
+      //guarda valor en variable luz
+      lux = lightMeter.readLightLevel();
+    }
+    //guarda valor en dos bytes por que puede llegar a ser más de 8 bits
+    dataToSend[0] = (lux >> 8) & 0xFF;
+    dataToSend[1] = lux & 0xFF; 
 
+    //si el usuario elige la opcion 1
     if(opcion == 49){
-      pixelLoading(150);
+      //funcion para mostrar que esta cargando opcion 1 con neopixel
+      pixelLoading(200, 0, 200);
+      //envia dato de sensor en Uart con dos bytes
       Serial2.write(dataToSend, 2);
-      Serial.println("Opcion1");
-      Serial.println(mapPot1);
+      //neopixels vuelve a modo encendido
+      pixelOn(250);
     }
+    //si el usuario elije la opcion 2
     if(opcion == 50){
-      pixelLoading(255);
+      //funcion para mostrar que esta cargando opcion 2 con neopixel
+      pixelLoading(255, 165, 0);
+      //envia dato de sensor en Uart con dos bytes
       Serial2.write(dataToSend, 2);
-      Serial.println("Opcion2");
-      Serial.println(mapPot1);
+      //neopixels vuelve a modo encendido
+      pixelOn(250);
     }
   }
 }
 
-
-//funcion para recibir I2C
-void onRecieve(int len){
-  //while para que lea datos siempre que existan
-  while(Wire.available()){
-    //lecura de I2C
-    sensorI2C = Wire.read();
-
-  }
-}
-
-void pixelLoading(int colorPix){
+//funcion para mostrar que esta cargando el programa basado en la opcion que se escoge con neopixels con un mayor delay
+void pixelLoading(int colorBlue, int colorRed, int colorGreen){
   for(int i = 0; i < numPixeles; i++){
-    pixels.setPixelColor(i, pixels.Color(colorPix, 0, 0));
+    pixels.setPixelColor(i, pixels.Color(colorBlue, colorRed, colorGreen));
     pixels.show();
+    delay(250);
   }
-  delay(250);
 }
 
+//funcion para mostrar el modo encendido del programa con las neopixels con poco delay
 void pixelOn(int colorChoice){
   for(int i = 0; i < numPixeles; i++){
-    pixels.setPixelColor(i, pixels.Color(colorChoice, 0, 0));
+    pixels.setPixelColor(i, pixels.Color(0, 0, colorChoice));
     pixels.show();
+    delay(20);
   }
-  delay(20);
 }
